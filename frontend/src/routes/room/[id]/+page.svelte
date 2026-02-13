@@ -4,6 +4,7 @@
 	import { connectWs, disconnectWs, onMessage, participantId, isModerator } from '$lib/stores/websocket';
 	import { roomState, stats, joined, selectedCard, timerSeconds, timerRunning } from '$lib/stores/room';
 	import type { RoomState, WsMessage } from '$lib/types';
+	import { t, translateError, type TranslationKey } from '$lib/i18n';
 	import JoinForm from '$lib/components/JoinForm.svelte';
 	import CardDeck from '$lib/components/CardDeck.svelte';
 	import ParticipantList from '$lib/components/ParticipantList.svelte';
@@ -20,6 +21,13 @@
 	let isMod = $state(false);
 	let myId = $state<string | null>(null);
 	let room = $state<RoomState | null>(null);
+
+	let tr = $state((_key: TranslationKey) => '' as string);
+
+	$effect(() => {
+		const unsub = t.subscribe((v) => (tr = v));
+		return () => unsub();
+	});
 
 	$effect(() => {
 		const unsub1 = joined.subscribe((v) => (isJoined = v));
@@ -41,13 +49,13 @@
 			const res = await fetch(`/api/rooms/${roomId}`);
 			if (!res.ok) {
 				roomExists = false;
-				error = 'Room not found';
+				error = tr('room.notFound');
 				return;
 			}
 			roomExists = true;
 		} catch {
 			roomExists = false;
-			error = 'Network error';
+			error = tr('room.networkError');
 			return;
 		}
 
@@ -71,7 +79,7 @@
 			} else if (msg.type === 'timer_stop') {
 				timerRunning.set(false);
 			} else if (msg.type === 'error') {
-				error = (msg.payload as any).message;
+				error = translateError((msg.payload as any).message);
 				setTimeout(() => (error = ''), 3000);
 			}
 		}));
@@ -97,18 +105,18 @@
 
 <main>
 	{#if roomExists === null}
-		<p>Loading...</p>
+		<p>{tr('room.loading')}</p>
 	{:else if !roomExists}
-		<p class="error">{error || 'Room not found'}</p>
+		<p class="error">{error || tr('room.notFound')}</p>
 	{:else if !isJoined}
-		<h2>Join Room <code>{roomId}</code></h2>
+		<h2>{tr('join.title')} <code>{roomId}</code></h2>
 		<JoinForm />
 	{:else}
 		<header>
 			<div class="room-info">
-				Room: <code>{roomId}</code>
+				{tr('room.label')} <code>{roomId}</code>
 				<button class="copy-btn" onclick={() => navigator.clipboard.writeText(shareUrl)}>
-					Copy link
+					{tr('room.copyLink')}
 				</button>
 			</div>
 			<Timer />

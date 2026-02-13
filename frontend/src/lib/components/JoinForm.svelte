@@ -1,9 +1,17 @@
 <script lang="ts">
 	import { sendMessage } from '$lib/stores/websocket';
 	import { joined } from '$lib/stores/room';
+	import { t, type TranslationKey } from '$lib/i18n';
 
 	let name = $state('');
 	let role = $state<'voter' | 'spectator'>('voter');
+
+	let tr = $state((_key: TranslationKey) => '' as string);
+
+	$effect(() => {
+		const unsub = t.subscribe((v) => (tr = v));
+		return () => unsub();
+	});
 
 	function handleJoin() {
 		const trimmed = name.trim();
@@ -15,23 +23,23 @@
 
 <form class="join-form" onsubmit={(e) => { e.preventDefault(); handleJoin(); }}>
 	<label>
-		Your name
-		<input type="text" bind:value={name} placeholder="Enter your name" autofocus />
+		{tr('join.yourName')}
+		<input type="text" bind:value={name} placeholder={tr('join.placeholder')} autofocus />
 	</label>
 
 	<fieldset>
-		<legend>Role</legend>
+		<legend>{tr('join.role')}</legend>
 		<label>
 			<input type="radio" bind:group={role} value="voter" />
-			Voter
+			{tr('join.voter')}
 		</label>
 		<label>
 			<input type="radio" bind:group={role} value="spectator" />
-			Spectator
+			{tr('join.spectator')}
 		</label>
 	</fieldset>
 
-	<button type="submit" disabled={!name.trim()}>Join</button>
+	<button type="submit" disabled={!name.trim()}>{tr('join.button')}</button>
 </form>
 
 <style>

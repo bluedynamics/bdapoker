@@ -47,7 +47,8 @@ def test_get_deck_cards_tshirt_animals():
     cards = get_deck_cards("tshirt", "animals")
     assert len(cards) == 9  # 6 tshirt + 3 special
     assert cards[0]["value"] == "xs"
-    assert "Ant" in cards[0]["description"]
+    assert "Ant" in cards[0]["description"]["en"]
+    assert "Ameise" in cards[0]["description"]["de"]
 
 
 def test_get_deck_cards_powers2_software():
@@ -77,7 +78,10 @@ def test_all_deck_flavor_combinations():
                 assert "value" in card
                 assert "label" in card
                 assert "description" in card
-                assert len(card["description"]) > 0
+                assert "en" in card["description"]
+                assert "de" in card["description"]
+                assert len(card["description"]["en"]) > 0
+                assert len(card["description"]["de"]) > 0
 
 
 def test_get_all_decks():

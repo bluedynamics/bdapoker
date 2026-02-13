@@ -1,15 +1,28 @@
 <script lang="ts">
 	import { participants, currentRound } from '$lib/stores/room';
 	import type { Participant, RoundState } from '$lib/types';
+	import { t, type TranslationKey } from '$lib/i18n';
 
 	let participantList: Participant[] = $state([]);
 	let round: RoundState | null = $state(null);
+
+	let tr = $state((_key: TranslationKey) => '' as string);
+
+	$effect(() => {
+		const unsub = t.subscribe((v) => (tr = v));
+		return () => unsub();
+	});
 
 	$effect(() => {
 		const unsub1 = participants.subscribe((v) => (participantList = v));
 		const unsub2 = currentRound.subscribe((v) => (round = v));
 		return () => { unsub1(); unsub2(); };
 	});
+
+	function roleLabel(role: string): string {
+		const key = `role.${role}` as TranslationKey;
+		return tr(key);
+	}
 
 	function voteStatus(pid: string): string {
 		if (!round) return '';
@@ -22,20 +35,20 @@
 </script>
 
 <div class="participants">
-	<h3>Participants</h3>
+	<h3>{tr('participants.title')}</h3>
 	<table>
 		<thead>
 			<tr>
-				<th>Name</th>
-				<th>Role</th>
-				<th>Vote</th>
+				<th>{tr('participants.name')}</th>
+				<th>{tr('participants.role')}</th>
+				<th>{tr('participants.vote')}</th>
 			</tr>
 		</thead>
 		<tbody>
 			{#each participantList as p}
 				<tr class:disconnected={!p.connected}>
 					<td>{p.name}</td>
-					<td class="role">{p.role}</td>
+					<td class="role">{roleLabel(p.role)}</td>
 					<td class="vote">{voteStatus(p.id)}</td>
 				</tr>
 			{/each}

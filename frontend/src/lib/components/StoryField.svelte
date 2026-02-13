@@ -1,8 +1,16 @@
 <script lang="ts">
 	import { currentRound } from '$lib/stores/room';
 	import type { RoundState } from '$lib/types';
+	import { t, type TranslationKey } from '$lib/i18n';
 
 	let round: RoundState | null = $state(null);
+
+	let tr = $state((_key: TranslationKey) => '' as string);
+
+	$effect(() => {
+		const unsub = t.subscribe((v) => (tr = v));
+		return () => unsub();
+	});
 
 	$effect(() => {
 		const unsub = currentRound.subscribe((v) => (round = v));
@@ -12,14 +20,14 @@
 
 <div class="story">
 	{#if round}
-		<span class="label">Story:</span>
-		<span class="text">{round.story || '(no story set)'}</span>
+		<span class="label">{tr('story.label')}</span>
+		<span class="text">{round.story || tr('story.noStory')}</span>
 		{#if round.story_link}
-			<a href={round.story_link} target="_blank" rel="noopener">[link]</a>
+			<a href={round.story_link} target="_blank" rel="noopener">{tr('story.link')}</a>
 		{/if}
-		<span class="round">Round {round.round_number}</span>
+		<span class="round">{tr('story.round')} {round.round_number}</span>
 	{:else}
-		<span class="text">Waiting for moderator to start a round...</span>
+		<span class="text">{tr('story.waiting')}</span>
 	{/if}
 </div>
 

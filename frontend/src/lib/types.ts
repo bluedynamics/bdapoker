@@ -24,7 +24,7 @@ export interface RoundState {
 export interface CardDef {
 	value: string;
 	label: string;
-	description: string;
+	description: { en: string; de: string };
 }
 
 export interface Stats {

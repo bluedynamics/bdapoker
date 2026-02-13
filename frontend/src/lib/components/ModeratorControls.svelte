@@ -2,11 +2,19 @@
 	import { sendMessage } from '$lib/stores/websocket';
 	import { currentRound } from '$lib/stores/room';
 	import type { RoundState } from '$lib/types';
+	import { t, type TranslationKey } from '$lib/i18n';
 
 	let round: RoundState | null = $state(null);
 	let newStory = $state('');
 	let newStoryLink = $state('');
 	let showNewStoryForm = $state(false);
+
+	let tr = $state((_key: TranslationKey) => '' as string);
+
+	$effect(() => {
+		const unsub = t.subscribe((v) => (tr = v));
+		return () => unsub();
+	});
 
 	$effect(() => {
 		const unsub = currentRound.subscribe((v) => (round = v));
@@ -43,26 +51,26 @@
 <div class="controls">
 	<div class="buttons">
 		{#if round && !round.revealed}
-			<button onclick={reveal}>Reveal</button>
+			<button onclick={reveal}>{tr('mod.reveal')}</button>
 		{/if}
 		{#if round}
-			<button onclick={resetRound}>Re-vote</button>
+			<button onclick={resetRound}>{tr('mod.revote')}</button>
 		{/if}
 		<button onclick={() => (showNewStoryForm = !showNewStoryForm)}>
-			{showNewStoryForm ? 'Cancel' : 'New Story'}
+			{showNewStoryForm ? tr('mod.cancel') : tr('mod.newStory')}
 		</button>
 		{#if round && !round.revealed}
-			<button onclick={() => startTimer(60)}>Timer 60s</button>
-			<button onclick={() => startTimer(120)}>Timer 120s</button>
-			<button onclick={stopTimer}>Stop Timer</button>
+			<button onclick={() => startTimer(60)}>{tr('mod.timer60')}</button>
+			<button onclick={() => startTimer(120)}>{tr('mod.timer120')}</button>
+			<button onclick={stopTimer}>{tr('mod.stopTimer')}</button>
 		{/if}
 	</div>
 
 	{#if showNewStoryForm}
 		<form class="new-story" onsubmit={(e) => { e.preventDefault(); startNewRound(); }}>
-			<input type="text" bind:value={newStory} placeholder="Story description" />
-			<input type="text" bind:value={newStoryLink} placeholder="Link (optional)" />
-			<button type="submit">Start Round</button>
+			<input type="text" bind:value={newStory} placeholder={tr('mod.storyPlaceholder')} />
+			<input type="text" bind:value={newStoryLink} placeholder={tr('mod.linkPlaceholder')} />
+			<button type="submit">{tr('mod.startRound')}</button>
 		</form>
 	{/if}
 </div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { CardDef } from '$lib/types';
+	import { locale, type Locale } from '$lib/i18n';
 
 	interface Props {
 		card: CardDef;
@@ -9,6 +10,15 @@
 	}
 
 	let { card, selected, disabled, onclick }: Props = $props();
+
+	let lang: Locale = $state('en');
+
+	$effect(() => {
+		const unsub = locale.subscribe((v) => (lang = v));
+		return () => unsub();
+	});
+
+	let desc = $derived(card.description[lang]);
 </script>
 
 <button
@@ -16,10 +26,10 @@
 	class:selected
 	{disabled}
 	{onclick}
-	title={card.description}
+	title={desc}
 >
 	<span class="label">{card.label}</span>
-	<span class="info" title={card.description}>i</span>
+	<span class="info" title={desc}>i</span>
 </button>
 
 <style>

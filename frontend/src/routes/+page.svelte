@@ -1,23 +1,21 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { t, translateError, type TranslationKey } from '$lib/i18n';
 
 	let deckType = $state('fibonacci');
 	let flavor = $state('technical');
 	let creating = $state(false);
 	let error = $state('');
 
-	const deckTypes = [
-		{ value: 'fibonacci', label: 'Fibonacci (0, ½, 1, 2, 3, 5, 8, 13, 20, 40, 100)' },
-		{ value: 'tshirt', label: 'T-Shirt (XS, S, M, L, XL, XXL)' },
-		{ value: 'powers2', label: 'Powers of 2 (1, 2, 4, 8, 16, 32, 64)' }
-	];
+	let tr = $state((_key: TranslationKey) => '' as string);
 
-	const flavors = [
-		{ value: 'technical', label: 'Technical — straightforward complexity' },
-		{ value: 'idioms', label: 'Idioms — sayings & metaphors' },
-		{ value: 'animals', label: 'Animals — complexity by creature size' },
-		{ value: 'software', label: 'Software — developer analogies' }
-	];
+	$effect(() => {
+		const unsub = t.subscribe((v) => (tr = v));
+		return () => unsub();
+	});
+
+	const deckTypes = ['fibonacci', 'tshirt', 'powers2'] as const;
+	const flavors = ['technical', 'idioms', 'animals', 'software'] as const;
 
 	async function createRoom() {
 		creating = true;
@@ -30,14 +28,14 @@
 			});
 			if (!res.ok) {
 				const data = await res.json();
-				error = data.detail || 'Failed to create room';
+				error = translateError(data.detail || 'Failed to create room');
 				return;
 			}
 			const data = await res.json();
 			sessionStorage.setItem(`mod_token_${data.room_id}`, data.moderator_token);
 			goto(`/room/${data.room_id}`);
 		} catch {
-			error = 'Network error';
+			error = tr('home.error.network');
 		} finally {
 			creating = false;
 		}
@@ -45,28 +43,28 @@
 </script>
 
 <main>
-	<h1>Planning Poker</h1>
+	<h1>{tr('app.title')}</h1>
 	<form onsubmit={(e) => { e.preventDefault(); createRoom(); }}>
 		<label>
-			Deck
+			{tr('home.deck')}
 			<select bind:value={deckType}>
-				{#each deckTypes as dt}
-					<option value={dt.value}>{dt.label}</option>
+				{#each deckTypes as dk}
+					<option value={dk}>{tr(`deck.${dk}`)}</option>
 				{/each}
 			</select>
 		</label>
 
 		<label>
-			Descriptions
+			{tr('home.descriptions')}
 			<select bind:value={flavor}>
-				{#each flavors as f}
-					<option value={f.value}>{f.label}</option>
+				{#each flavors as fl}
+					<option value={fl}>{tr(`flavor.${fl}`)}</option>
 				{/each}
 			</select>
 		</label>
 
 		<button type="submit" disabled={creating}>
-			{creating ? 'Creating...' : 'Create Room'}
+			{creating ? tr('home.creating') : tr('home.createRoom')}
 		</button>
 	</form>
 
