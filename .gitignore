@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+backend/.venv/
+backend/.pytest_cache/
+*.egg-info/
+
+# Node
+frontend/node_modules/
+frontend/build/
+frontend/.svelte-kit/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
