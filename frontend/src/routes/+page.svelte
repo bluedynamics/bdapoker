@@ -32,7 +32,7 @@
 				return;
 			}
 			const data = await res.json();
-			sessionStorage.setItem(`mod_token_${data.room_id}`, data.moderator_token);
+			localStorage.setItem(`mod_token_${data.room_id}`, data.moderator_token);
 			goto(`/room/${data.room_id}`);
 		} catch {
 			error = tr('home.error.network');

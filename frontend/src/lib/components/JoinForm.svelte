@@ -3,7 +3,7 @@
 	import { joined } from '$lib/stores/room';
 	import { t, type TranslationKey } from '$lib/i18n';
 
-	let name = $state('');
+	let name = $state(localStorage.getItem('participant_name') ?? '');
 	let role = $state<'voter' | 'spectator'>('voter');
 
 	let tr = $state((_key: TranslationKey) => '' as string);
@@ -17,6 +17,7 @@
 		const trimmed = name.trim();
 		if (!trimmed) return;
 		sendMessage('join', { name: trimmed, role });
+		localStorage.setItem('participant_name', trimmed);
 		joined.set(true);
 	}
 </script>

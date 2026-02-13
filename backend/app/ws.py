@@ -11,7 +11,14 @@ from fastapi import WebSocket, WebSocketDisconnect
 from .connection_manager import manager
 from .decks import get_deck_cards
 from .models import Participant, Role, Round, Vote
-from .rooms import get_moderator_token, get_room
+from .rooms import (
+    create_reconnect_token,
+    get_moderator_token,
+    get_reconnect_token,
+    get_room,
+    remove_reconnect_token,
+    validate_reconnect_token,
+)
 
 
 async def _broadcast_state(room_id: str) -> None:
@@ -131,6 +138,14 @@ async def _handle_join(
     )
     await _broadcast_state(room.id)
 
+    # Issue reconnect token so participant can reclaim identity after disconnect
+    token = create_reconnect_token(room.id, participant_id)
+    await manager.send_to(
+        room.id,
+        participant_id,
+        {"type": "reconnect_token", "payload": {"reconnect_token": token}},
+    )
+
 
 async def _handle_vote(room: Any, participant_id: str, payload: dict) -> None:
     if room.current_round is None:
@@ -220,6 +235,7 @@ async def _handle_kick(room: Any, participant_id: str, payload: dict) -> None:
     room.participants.pop(target_id, None)
     if room.current_round:
         room.current_round.votes.pop(target_id, None)
+    remove_reconnect_token(room.id, target_id)
     manager.disconnect(room.id, target_id)
     await _broadcast_state(room.id)
 
@@ -269,26 +285,63 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str) -> None:
         return
 
     await websocket.accept()
-    participant_id = shortuuid.uuid()[:10]
 
-    # Check if this is the moderator connecting (token in query params)
-    token = websocket.query_params.get("token")
-    is_mod = token is not None and token == get_moderator_token(room_id)
+    # --- Reconnect attempt ---
+    reconnect_id = websocket.query_params.get("reconnect_id")
+    reconnect_token = websocket.query_params.get("reconnect_token")
+    reconnected = False
+
+    if (
+        reconnect_id
+        and reconnect_token
+        and validate_reconnect_token(room_id, reconnect_id, reconnect_token)
+        and reconnect_id in room.participants
+    ):
+        participant_id = reconnect_id
+        reconnected = True
+    else:
+        participant_id = shortuuid.uuid()[:10]
+
+    # Moderator check: for reconnects derive from stored role,
+    # for new connections check the mod token query param.
+    if reconnected:
+        is_mod = room.participants[participant_id].role == Role.MODERATOR
+    else:
+        mod_token = websocket.query_params.get("token")
+        is_mod = mod_token is not None and mod_token == get_moderator_token(room_id)
 
     manager.connect(room_id, participant_id, websocket)
 
-    # Send the participant their ID and moderator status
-    await websocket.send_text(
-        json.dumps(
-            {
-                "type": "welcome",
-                "payload": {
-                    "participant_id": participant_id,
-                    "is_moderator": is_mod,
-                },
-            }
+    if reconnected:
+        room.participants[participant_id].connected = True
+        existing_token = get_reconnect_token(room_id, participant_id)
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "welcome",
+                    "payload": {
+                        "participant_id": participant_id,
+                        "is_moderator": is_mod,
+                        "reconnected": True,
+                        "reconnect_token": existing_token,
+                    },
+                }
+            )
         )
-    )
+        await _broadcast_state(room_id)
+    else:
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "welcome",
+                    "payload": {
+                        "participant_id": participant_id,
+                        "is_moderator": is_mod,
+                        "reconnected": False,
+                    },
+                }
+            )
+        )
 
     try:
         while True:

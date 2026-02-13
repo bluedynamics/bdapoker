@@ -62,8 +62,10 @@
 		// Connect WebSocket
 		const id = roomId;
 		if (!id) return;
-		const token = sessionStorage.getItem(`mod_token_${id}`);
-		connectWs(id, token);
+		const token = localStorage.getItem(`mod_token_${id}`);
+		const reconId = localStorage.getItem(`reconnect_id_${id}`);
+		const reconToken = localStorage.getItem(`reconnect_token_${id}`);
+		connectWs(id, token, reconId, reconToken);
 
 		cleanups.push(onMessage((msg: WsMessage) => {
 			if (msg.type === 'room_state') {
@@ -72,6 +74,28 @@
 					stats.set(msg.payload.stats as any);
 				} else {
 					stats.set(null);
+				}
+			} else if (msg.type === 'welcome') {
+				if ((msg.payload as any).reconnected) {
+					joined.set(true);
+				}
+				// Store reconnect_token from welcome (for reconnected users)
+				if ((msg.payload as any).reconnect_token) {
+					localStorage.setItem(`reconnect_id_${id}`, (msg.payload as any).participant_id);
+					localStorage.setItem(`reconnect_token_${id}`, (msg.payload as any).reconnect_token);
+				}
+			} else if (msg.type === 'reconnect_token') {
+				// Store reconnect credentials for future reconnection
+				const rToken = (msg.payload as any).reconnect_token;
+				if (rToken) {
+					localStorage.setItem(`reconnect_token_${id}`, rToken);
+				}
+				// Store participant_id (set by welcome message earlier)
+				let currentPid: string | null = null;
+				const unsub = participantId.subscribe((v) => (currentPid = v));
+				unsub();
+				if (currentPid) {
+					localStorage.setItem(`reconnect_id_${id}`, currentPid);
 				}
 			} else if (msg.type === 'timer_start') {
 				timerSeconds.set((msg.payload as any).seconds);

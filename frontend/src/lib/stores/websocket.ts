@@ -15,16 +15,23 @@ export function onMessage(handler: (msg: WsMessage) => void): () => void {
 	};
 }
 
-export function connectWs(roomId: string, token?: string | null): void {
+export function connectWs(
+	roomId: string,
+	token?: string | null,
+	reconnectId?: string | null,
+	reconnectToken?: string | null
+): void {
 	if (ws) {
 		ws.close();
 	}
 
 	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-	let url = `${protocol}//${window.location.host}/api/rooms/${roomId}/ws`;
-	if (token) {
-		url += `?token=${encodeURIComponent(token)}`;
-	}
+	const params = new URLSearchParams();
+	if (token) params.set('token', token);
+	if (reconnectId) params.set('reconnect_id', reconnectId);
+	if (reconnectToken) params.set('reconnect_token', reconnectToken);
+	const qs = params.toString();
+	const url = `${protocol}//${window.location.host}/api/rooms/${roomId}/ws${qs ? '?' + qs : ''}`;
 
 	ws = new WebSocket(url);
 

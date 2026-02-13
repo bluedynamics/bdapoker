@@ -15,6 +15,8 @@ def clean_rooms():
     """Clear all rooms between tests."""
     rooms_module._rooms.clear()
     rooms_module._moderator_tokens.clear()
+    rooms_module._reconnect_tokens.clear()
     yield
     rooms_module._rooms.clear()
     rooms_module._moderator_tokens.clear()
+    rooms_module._reconnect_tokens.clear()

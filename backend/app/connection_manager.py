@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 
@@ -16,7 +17,16 @@ class ConnectionManager:
     def connect(self, room_id: str, participant_id: str, ws: WebSocket) -> None:
         if room_id not in self._connections:
             self._connections[room_id] = {}
+        existing = self._connections[room_id].get(participant_id)
+        if existing is not None and existing is not ws:
+            asyncio.create_task(self._close_stale(existing))
         self._connections[room_id][participant_id] = ws
+
+    async def _close_stale(self, ws: WebSocket) -> None:
+        try:
+            await ws.close(code=4001, reason="Reconnected from another session")
+        except Exception:
+            pass
 
     def disconnect(self, room_id: str, participant_id: str) -> None:
         conns = self._connections.get(room_id)
