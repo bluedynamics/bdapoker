@@ -52,8 +52,10 @@
 		}
 
 		// Connect WebSocket
-		const token = sessionStorage.getItem(`mod_token_${roomId}`);
-		connectWs(roomId, token);
+		const id = roomId;
+		if (!id) return;
+		const token = sessionStorage.getItem(`mod_token_${id}`);
+		connectWs(id, token);
 
 		cleanups.push(onMessage((msg: WsMessage) => {
 			if (msg.type === 'room_state') {
