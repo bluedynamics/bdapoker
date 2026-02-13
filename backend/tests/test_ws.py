@@ -334,3 +334,120 @@ def test_kick_self_fails(client):
         msg = json.loads(ws.receive_text())
         assert msg["type"] == "error"
         assert "Cannot kick yourself" in msg["payload"]["message"]
+
+
+def _reveal_with_special_vote(client, special_value, numeric_value="5"):
+    """Helper: one voter votes numeric, another votes a special card, then reveal."""
+    room, token = create_room("fibonacci", "technical")
+
+    with client.websocket_connect(f"/api/rooms/{room.id}/ws?token={token}") as mod_ws:
+        json.loads(mod_ws.receive_text())  # welcome
+        mod_ws.send_text(json.dumps({"type": "join", "payload": {"name": "Mod"}}))
+        json.loads(mod_ws.receive_text())
+
+        with client.websocket_connect(f"/api/rooms/{room.id}/ws") as voter_ws:
+            json.loads(voter_ws.receive_text())  # welcome
+            voter_ws.send_text(json.dumps({"type": "join", "payload": {"name": "Voter"}}))
+            json.loads(voter_ws.receive_text())  # room_state
+            json.loads(mod_ws.receive_text())  # broadcast
+
+            # Start round
+            mod_ws.send_text(json.dumps({"type": "new_round", "payload": {"story": "Test"}}))
+            json.loads(mod_ws.receive_text())
+            json.loads(voter_ws.receive_text())
+
+            # Mod votes numeric, voter votes special
+            mod_ws.send_text(json.dumps({"type": "vote", "payload": {"value": numeric_value}}))
+            json.loads(mod_ws.receive_text())
+            json.loads(voter_ws.receive_text())
+
+            voter_ws.send_text(json.dumps({"type": "vote", "payload": {"value": special_value}}))
+            json.loads(voter_ws.receive_text())
+            json.loads(mod_ws.receive_text())
+
+            # Reveal
+            mod_ws.send_text(json.dumps({"type": "reveal"}))
+            msg = json.loads(mod_ws.receive_text())
+            assert msg["type"] == "room_state"
+            assert msg["payload"]["current_round"]["revealed"] is True
+            return msg["payload"]
+
+
+def test_reveal_with_infinity_vote(client):
+    """Infinity votes must be excluded from stats (float('infinity') is valid Python)."""
+    payload = _reveal_with_special_vote(client, "infinity")
+    stats = payload["stats"]
+    assert stats["average"] == 5.0
+    assert stats["median"] == 5.0
+
+
+def test_reveal_with_question_mark_vote(client):
+    """'?' votes should be excluded from stats."""
+    payload = _reveal_with_special_vote(client, "?")
+    stats = payload["stats"]
+    assert stats["average"] == 5.0
+    assert stats["median"] == 5.0
+
+
+def test_reveal_with_coffee_vote(client):
+    """'coffee' votes should be excluded from stats."""
+    payload = _reveal_with_special_vote(client, "coffee")
+    stats = payload["stats"]
+    assert stats["average"] == 5.0
+    assert stats["median"] == 5.0
+
+
+def test_reveal_all_special_votes(client):
+    """When all votes are non-numeric, stats should be empty."""
+    room, token = create_room("fibonacci", "technical")
+
+    with client.websocket_connect(f"/api/rooms/{room.id}/ws?token={token}") as mod_ws:
+        json.loads(mod_ws.receive_text())  # welcome
+        mod_ws.send_text(json.dumps({"type": "join", "payload": {"name": "Mod"}}))
+        json.loads(mod_ws.receive_text())
+
+        with client.websocket_connect(f"/api/rooms/{room.id}/ws") as voter_ws:
+            json.loads(voter_ws.receive_text())  # welcome
+            voter_ws.send_text(json.dumps({"type": "join", "payload": {"name": "Voter"}}))
+            json.loads(voter_ws.receive_text())
+            json.loads(mod_ws.receive_text())
+
+            mod_ws.send_text(json.dumps({"type": "new_round", "payload": {"story": "Test"}}))
+            json.loads(mod_ws.receive_text())
+            json.loads(voter_ws.receive_text())
+
+            # Both vote special
+            mod_ws.send_text(json.dumps({"type": "vote", "payload": {"value": "?"}}))
+            json.loads(mod_ws.receive_text())
+            json.loads(voter_ws.receive_text())
+
+            voter_ws.send_text(json.dumps({"type": "vote", "payload": {"value": "infinity"}}))
+            json.loads(voter_ws.receive_text())
+            json.loads(mod_ws.receive_text())
+
+            mod_ws.send_text(json.dumps({"type": "reveal"}))
+            msg = json.loads(mod_ws.receive_text())
+            assert msg["payload"]["current_round"]["revealed"] is True
+            assert msg["payload"]["stats"] == {}
+
+
+def test_reveal_with_tshirt_votes(client):
+    """T-shirt size votes (non-numeric) should be excluded from stats."""
+    room, token = create_room("tshirt", "technical")
+
+    with client.websocket_connect(f"/api/rooms/{room.id}/ws?token={token}") as mod_ws:
+        json.loads(mod_ws.receive_text())  # welcome
+        mod_ws.send_text(json.dumps({"type": "join", "payload": {"name": "Mod"}}))
+        json.loads(mod_ws.receive_text())
+
+        mod_ws.send_text(json.dumps({"type": "new_round", "payload": {"story": "Test"}}))
+        json.loads(mod_ws.receive_text())
+
+        mod_ws.send_text(json.dumps({"type": "vote", "payload": {"value": "xl"}}))
+        json.loads(mod_ws.receive_text())
+
+        mod_ws.send_text(json.dumps({"type": "reveal"}))
+        msg = json.loads(mod_ws.receive_text())
+        assert msg["payload"]["current_round"]["revealed"] is True
+        # T-shirt sizes are non-numeric, stats should be empty
+        assert msg["payload"]["stats"] == {}

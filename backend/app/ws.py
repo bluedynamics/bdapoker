@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import statistics
 from typing import Any
 
@@ -41,9 +42,12 @@ def _compute_stats(votes: dict[str, Vote]) -> dict[str, Any]:
     numeric_values: list[float] = []
     for v in votes.values():
         try:
-            numeric_values.append(float(v.value))
+            fval = float(v.value)
         except (ValueError, TypeError):
-            continue  # skip ?, coffee, infinity
+            continue  # skip ?, coffee, etc.
+        if not math.isfinite(fval):
+            continue  # skip infinity, -infinity, NaN
+        numeric_values.append(fval)
 
     if not numeric_values:
         return {}

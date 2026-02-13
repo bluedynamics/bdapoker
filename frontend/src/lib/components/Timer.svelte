@@ -11,6 +11,25 @@
 		return () => { unsub1(); unsub2(); };
 	});
 
+	function playAlarm() {
+		const ctx = new AudioContext();
+		const osc = ctx.createOscillator();
+		const gain = ctx.createGain();
+		osc.connect(gain);
+		gain.connect(ctx.destination);
+		osc.frequency.value = 880;
+		gain.gain.value = 0.3;
+		osc.start();
+		// Three short beeps
+		gain.gain.setValueAtTime(0.3, ctx.currentTime);
+		gain.gain.setValueAtTime(0, ctx.currentTime + 0.15);
+		gain.gain.setValueAtTime(0.3, ctx.currentTime + 0.3);
+		gain.gain.setValueAtTime(0, ctx.currentTime + 0.45);
+		gain.gain.setValueAtTime(0.3, ctx.currentTime + 0.6);
+		gain.gain.setValueAtTime(0, ctx.currentTime + 0.75);
+		osc.stop(ctx.currentTime + 0.75);
+	}
+
 	$effect(() => {
 		if (running && seconds !== null && seconds > 0) {
 			intervalId = setInterval(() => {
@@ -24,6 +43,12 @@
 		return () => {
 			if (intervalId) clearInterval(intervalId);
 		};
+	});
+
+	$effect(() => {
+		if (seconds === 0 && running) {
+			playAlarm();
+		}
 	});
 
 	function format(s: number): string {
