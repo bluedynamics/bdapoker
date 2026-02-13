@@ -29,6 +29,9 @@ Homepage = "https://github.com/bluedynamics/bdapoker"
 Repository = "https://github.com/bluedynamics/bdapoker"
 Issues = "https://github.com/bluedynamics/bdapoker/issues"
 
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
