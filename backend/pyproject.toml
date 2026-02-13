@@ -2,7 +2,6 @@
 name = "bdapoker-backend"
 version = "0.1.0"
 description = "Planning Poker — real-time agile estimation for teams"
-readme = "../README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [
