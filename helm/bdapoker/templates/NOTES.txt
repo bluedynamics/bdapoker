@@ -1,0 +1,13 @@
+BDA Poker has been deployed.
+
+{{- if .Values.ingress.enabled }}
+Access it at: http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }}
+{{- else }}
+To access it, run:
+  kubectl port-forward svc/{{ include "bdapoker.fullname" . }} 8000:{{ .Values.service.port }}
+
+Then open http://localhost:8000
+{{- end }}
+
+WARNING: This app uses in-memory state. Do NOT scale beyond 1 replica
+without adding a shared state backend (e.g. Redis).

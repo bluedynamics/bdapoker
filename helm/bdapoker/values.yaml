@@ -1,0 +1,37 @@
+# IMPORTANT: This app uses in-memory state. All room data and WebSocket
+# connections live inside a single process. Setting replicas > 1 will break
+# multi-user rooms (users on different pods cannot see each other).
+# To scale horizontally, you must first add a shared state backend (e.g. Redis).
+replicaCount: 1
+
+image:
+  repository: ghcr.io/bluedynamics/bdapoker
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  # host is required when ingress is enabled
+  host: ""
+  tls: []
+  #  - secretName: bdapoker-tls
+  #    hosts:
+  #      - poker.example.com
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
